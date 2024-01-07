@@ -2,17 +2,15 @@ import * as chai from "chai";
 import "../custom-matchers";
 import { Provider, types, utils, Wallet, ContractFactory } from "../../src";
 import { Contract, ethers, BigNumber } from "ethers";
+import { PRIVATE_KEY, tokenPath, paymasterPath } from "../utils";
 
 const { expect } = chai;
 
 describe("Paymaster", () => {
-    const PRIVATE_KEY = "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110";
 
     const provider = Provider.getDefaultProvider(types.Network.Localhost);
-    const wallet = new Wallet(PRIVATE_KEY, provider);
-
-    const tokenPath = "../files/Token.json";
-    const paymasterPath = "../files/Paymaster.json";
+    const ethProvider = ethers.getDefaultProvider("http://localhost:8545");
+    const wallet = new Wallet(PRIVATE_KEY, provider, ethProvider);
 
     describe("#ApprovalBased", () => {
         it("use ERC20 token to pay transaction fee", async () => {
@@ -42,7 +40,7 @@ describe("Paymaster", () => {
 
             // transfer ETH to paymaster so it could pay fee
             const faucetTx = await wallet.transfer({
-                token: utils.ETH_ADDRESS,
+                token: utils.LEGACY_ETH_ADDRESS,
                 to: paymasterAddress,
                 amount: ethers.utils.parseEther("0.01"),
             });

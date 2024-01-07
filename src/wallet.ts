@@ -101,7 +101,9 @@ export class Wallet extends AdapterL2(AdapterL1(ethers.Wallet)) {
         populated.value ??= 0;
         populated.data ??= "0x";
         populated.customData = this._fillCustomData(transaction.customData);
-        populated.gasPrice = await this.provider.getGasPrice();
+        if (!populated.maxFeePerGas && !populated.maxPriorityFeePerGas) {
+            populated.gasPrice = await this.provider.getGasPrice();
+        }
         return populated;
     }
 
@@ -129,5 +131,28 @@ export class Wallet extends AdapterL2(AdapterL1(ethers.Wallet)) {
         // Typescript isn't smart enough to recognise that wallet.sendTransaction
         // calls provider.sendTransaction which returns our extended type and not ethers' one.
         return (await super.sendTransaction(transaction)) as TransactionResponse;
+    }
+
+    // TODO Remove if when getBaseToken RPC endpoint is available on L2
+    override async transfer(transaction: {
+        to: string;
+        amount: ethers.BigNumberish;
+        token?: string;
+        overrides?: ethers.Overrides;
+    }): Promise<TransactionResponse> {
+        const baseToken = await this.getBaseToken();
+        const isEthBasedChain = await this.isEthBasedChain();
+
+        if (!isEthBasedChain && (!transaction.token || transaction.token === baseToken)) {
+            const tx = {
+                ...(await ethers.utils.resolveProperties((transaction.overrides ??= {}))),
+                from: await this.getAddress(),
+                to: transaction.to,
+                value: transaction.amount,
+            };
+            const txResponse = await this.sendTransaction(tx);
+            return this._providerL2()._wrapTransaction(txResponse);
+        }
+        return super.transfer(transaction);
     }
 }

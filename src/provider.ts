@@ -1,9 +1,9 @@
 import { BigNumber, BigNumberish, BytesLike, Contract, ethers, providers, utils } from "ethers";
 import { ExternalProvider } from "@ethersproject/providers";
 import { ConnectionInfo, poll } from "@ethersproject/web";
-import { Ierc20Factory as IERC20Factory } from "../typechain/Ierc20Factory";
-import { IEthTokenFactory as IEthTokenFactory } from "../typechain/IEthTokenFactory";
-import { Il2BridgeFactory as IL2BridgeFactory } from "../typechain/Il2BridgeFactory";
+import { Ierc20Factory } from "../typechain/Ierc20Factory";
+import { IEthTokenFactory } from "../typechain/IEthTokenFactory";
+import { Il2BridgeFactory } from "../typechain/Il2BridgeFactory";
 import {
     Address,
     BalancesMap,
@@ -27,13 +27,14 @@ import {
     RawBlockTransaction,
 } from "./types";
 import {
+    BOOTLOADER_FORMAL_ADDRESS,
     CONTRACT_DEPLOYER,
     CONTRACT_DEPLOYER_ADDRESS,
     EIP712_TX_TYPE,
-    ETH_ADDRESS,
+    LEGACY_ETH_ADDRESS,
+    ETH_ADDRESS_IN_CONTRACTS,
     getL2HashFromPriorityOp,
-    isETH,
-    L2_ETH_TOKEN_ADDRESS,
+    L2_BASE_TOKEN_ADDRESS,
     parseTransaction,
     REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
     sleep,
@@ -46,11 +47,12 @@ let defaultFormatter: Formatter = null;
 export class Provider extends ethers.providers.JsonRpcProvider {
     private static _nextPollId = 1;
     protected contractAddresses: {
+        bridgehubContract?: Address;
         mainContract?: Address;
         erc20BridgeL1?: Address;
-        erc20BridgeL2?: Address;
-        wethBridgeL1?: Address;
-        wethBridgeL2?: Address;
+        sharedBridgeL1?: Address;
+        sharedBridgeL2?: Address;
+        baseToken?: Address;
     };
 
     // NOTE: this is almost a complete copy-paste of the parent poll method
@@ -375,12 +377,12 @@ export class Provider extends ethers.providers.JsonRpcProvider {
 
     override async getBalance(address: Address, blockTag?: BlockTag, tokenAddress?: Address) {
         const tag = this.formatter.blockTag(blockTag);
-        if (tokenAddress == null || isETH(tokenAddress)) {
-            // requesting ETH balance
+        if (tokenAddress == null || await this.isBaseToken(tokenAddress)) {
+            // requesting base token balance
             return await super.getBalance(address, tag);
         } else {
             try {
-                let token = IERC20Factory.connect(tokenAddress, this);
+                let token = Ierc20Factory.connect(tokenAddress, this);
                 return await token.balanceOf(address, { blockTag: tag });
             } catch {
                 return BigNumber.from(0);
@@ -389,39 +391,29 @@ export class Provider extends ethers.providers.JsonRpcProvider {
     }
 
     async l2TokenAddress(token: Address) {
-        if (token == ETH_ADDRESS) {
-            return ETH_ADDRESS;
+        if (token == LEGACY_ETH_ADDRESS) {
+            token = ETH_ADDRESS_IN_CONTRACTS;
+        }
+
+        const baseToken = await this.getBaseTokenContractAddress();
+        if (token.toLowerCase() == baseToken.toLowerCase()) {
+            return L2_BASE_TOKEN_ADDRESS;
         }
 
         const bridgeAddresses = await this.getDefaultBridgeAddresses();
-        const l2WethBridge = IL2BridgeFactory.connect(bridgeAddresses.wethL2, this);
-        try {
-            const l2WethToken = await l2WethBridge.l2TokenAddress(token);
-            // If the token is Wrapped Ether, return its L2 token address
-            if (l2WethToken != ethers.constants.AddressZero) {
-                return l2WethToken;
-            }
-        } catch (e) {}
-        const l2Erc20Bridge = IL2BridgeFactory.connect(bridgeAddresses.erc20L2, this);
-        return await l2Erc20Bridge.l2TokenAddress(token);
+        const l2SharedBridge = Il2BridgeFactory.connect(bridgeAddresses.sharedL2, this);
+        return await l2SharedBridge.l2TokenAddress(token);
     }
 
     async l1TokenAddress(token: Address) {
-        if (token == ETH_ADDRESS) {
-            return ETH_ADDRESS;
+        if (token == LEGACY_ETH_ADDRESS) {
+            return LEGACY_ETH_ADDRESS;
         }
 
         const bridgeAddresses = await this.getDefaultBridgeAddresses();
-        const l2WethBridge = IL2BridgeFactory.connect(bridgeAddresses.wethL2, this);
-        try {
-            const l1WethToken = await l2WethBridge.l1TokenAddress(token);
-            // If the token is Wrapped Ether, return its L1 token address
-            if (l1WethToken != ethers.constants.AddressZero) {
-                return l1WethToken;
-            }
-        } catch (e) {}
-        const erc20Bridge = IL2BridgeFactory.connect(bridgeAddresses.erc20L2, this);
-        return await erc20Bridge.l1TokenAddress(token);
+
+        const sharedBridge = Il2BridgeFactory.connect(bridgeAddresses.sharedL2, this);
+        return await sharedBridge.l1TokenAddress(token);
     }
 
     // This function is used when formatting requests for
@@ -441,7 +433,7 @@ export class Provider extends ethers.providers.JsonRpcProvider {
             return result;
         }
         result.eip712Meta = {
-            gasPerPubdata: utils.hexValue(transaction.customData.gasPerPubdata ?? 0),
+            gasPerPubdata: utils.hexValue(transaction.customData.gasPerPubdataByte ?? 0),
         } as any;
         transaction.type = EIP712_TX_TYPE;
         if (transaction.customData.factoryDeps) {
@@ -552,11 +544,33 @@ export class Provider extends ethers.providers.JsonRpcProvider {
         return [parseInt(range[0], 16), parseInt(range[1], 16)];
     }
 
+    async getBridgehubContractAddress(): Promise<Address> {
+        if (!this.contractAddresses.bridgehubContract) {
+            this.contractAddresses.bridgehubContract = await this.send("zks_getBridgehubContract", []);
+        }
+        return this.contractAddresses.bridgehubContract;
+    }
+
     async getMainContractAddress(): Promise<Address> {
         if (!this.contractAddresses.mainContract) {
             this.contractAddresses.mainContract = await this.send("zks_getMainContract", []);
         }
         return this.contractAddresses.mainContract;
+    }
+
+    async getBaseTokenContractAddress(): Promise<Address> {
+        if (!this.contractAddresses.baseToken) {
+            this.contractAddresses.baseToken = await this.send("zks_getBaseTokenL1Address", []);
+        }
+        return this.contractAddresses.baseToken;
+    }
+
+    async isEthBasedChain(): Promise<boolean> {
+        return (await this.getBaseTokenContractAddress()) == ETH_ADDRESS_IN_CONTRACTS;
+    }
+
+    async isBaseToken(token: Address): Promise<boolean> {
+        return token == (await this.getBaseTokenContractAddress()) || token == L2_BASE_TOKEN_ADDRESS;
     }
 
     async getTestnetPaymasterAddress(): Promise<Address | null> {
@@ -567,17 +581,15 @@ export class Provider extends ethers.providers.JsonRpcProvider {
 
     async getDefaultBridgeAddresses() {
         if (!this.contractAddresses.erc20BridgeL1) {
-            let addresses = await this.send("zks_getBridgeContracts", []);
+            const addresses = await this.send("zks_getBridgeContracts", []);
             this.contractAddresses.erc20BridgeL1 = addresses.l1Erc20DefaultBridge;
-            this.contractAddresses.erc20BridgeL2 = addresses.l2Erc20DefaultBridge;
-            this.contractAddresses.wethBridgeL1 = addresses.l1WethBridge;
-            this.contractAddresses.wethBridgeL2 = addresses.l2WethBridge;
+            this.contractAddresses.sharedBridgeL1 = addresses.l1SharedDefaultBridge;
+            this.contractAddresses.sharedBridgeL2 = addresses.l2SharedDefaultBridge;
         }
         return {
             erc20L1: this.contractAddresses.erc20BridgeL1,
-            erc20L2: this.contractAddresses.erc20BridgeL2,
-            wethL1: this.contractAddresses.wethBridgeL1,
-            wethL2: this.contractAddresses.wethBridgeL2,
+            sharedL1: this.contractAddresses.sharedBridgeL1,
+            sharedL2: this.contractAddresses.sharedBridgeL2,
         };
     }
 
@@ -631,6 +643,9 @@ export class Provider extends ethers.providers.JsonRpcProvider {
         bridgeAddress?: Address;
         overrides?: ethers.CallOverrides;
     }): Promise<ethers.providers.TransactionRequest> {
+        if (transaction.token == LEGACY_ETH_ADDRESS){
+            transaction.token = ETH_ADDRESS_IN_CONTRACTS;
+        }
         const { ...tx } = transaction;
 
         if (tx.to == null && tx.from == null) {
@@ -641,7 +656,7 @@ export class Provider extends ethers.providers.JsonRpcProvider {
         tx.overrides ??= {};
         tx.overrides.from ??= tx.from;
 
-        if (isETH(tx.token)) {
+        if (await this.isBaseToken(tx.token)) {
             if (!tx.overrides.value) {
                 tx.overrides.value = tx.amount;
             }
@@ -654,24 +669,16 @@ export class Provider extends ethers.providers.JsonRpcProvider {
                 throw new Error("The tx.value is not equal to the value withdrawn");
             }
 
-            const ethL2Token = IEthTokenFactory.connect(L2_ETH_TOKEN_ADDRESS, this);
+            const ethL2Token = IEthTokenFactory.connect(L2_BASE_TOKEN_ADDRESS, this);
             return ethL2Token.populateTransaction.withdraw(tx.to, tx.overrides);
         }
 
         if (tx.bridgeAddress == null) {
             const bridgeAddresses = await this.getDefaultBridgeAddresses();
-            const l2WethBridge = IL2BridgeFactory.connect(bridgeAddresses.wethL2, this);
-            let l1WethToken = ethers.constants.AddressZero;
-            try {
-                l1WethToken = await l2WethBridge.l1TokenAddress(tx.token);
-            } catch (e) {}
-            tx.bridgeAddress =
-                l1WethToken != ethers.constants.AddressZero
-                    ? bridgeAddresses.wethL2
-                    : bridgeAddresses.erc20L2;
+            tx.bridgeAddress = bridgeAddresses.sharedL2;
         }
 
-        const bridge = IL2BridgeFactory.connect(tx.bridgeAddress!, this);
+        const bridge = Il2BridgeFactory.connect(tx.bridgeAddress!, this);
         return bridge.populateTransaction.withdraw(tx.to, tx.token, tx.amount, tx.overrides);
     }
 
@@ -698,14 +705,15 @@ export class Provider extends ethers.providers.JsonRpcProvider {
         tx.overrides ??= {};
         tx.overrides.from ??= tx.from;
 
-        if (tx.token == null || tx.token == ETH_ADDRESS) {
+        if (tx.token == null || tx.token == LEGACY_ETH_ADDRESS) {
+            // TODO: || tx.token == baseToken
             return {
                 ...(await ethers.utils.resolveProperties(tx.overrides)),
                 to: tx.to,
                 value: tx.amount,
             };
         } else {
-            const token = IERC20Factory.connect(tx.token, this);
+            const token = Ierc20Factory.connect(tx.token, this);
             return await token.populateTransaction.transfer(tx.to, tx.amount, tx.overrides);
         }
     }
@@ -721,15 +729,13 @@ export class Provider extends ethers.providers.JsonRpcProvider {
         return await this.estimateGas(transferTx);
     }
 
-    static getDefaultProvider(zksyncNetwork: ZkSyncNetwork = ZkSyncNetwork.Localhost) {
+    static getDefaultProvider(zksyncNetwork: ZkSyncNetwork = ZkSyncNetwork.Localhost): Provider {
         if (process.env.ZKSYNC_WEB3_API_URL) {
             return new Provider(process.env.ZKSYNC_WEB3_API_URL);
         }
         switch (zksyncNetwork) {
             case ZkSyncNetwork.Localhost:
                 return new Provider("http://localhost:3050");
-            case ZkSyncNetwork.Goerli:
-                return new Provider("https://zksync2-testnet.zksync.dev");
             case ZkSyncNetwork.Sepolia:
                 return new Provider("https://sepolia.era.zksync.dev");
             case ZkSyncNetwork.Mainnet:
@@ -851,6 +857,33 @@ export class Provider extends ethers.providers.JsonRpcProvider {
         };
 
         return l2Response;
+    }
+
+    async _getPriorityOpConfirmationL2ToL1Log(txHash: string, index: number = 0) {
+        const hash = ethers.utils.hexlify(txHash);
+        const receipt = await this.getTransactionReceipt(hash);
+        const messages = Array.from(receipt.l2ToL1Logs.entries()).filter(
+            ([_, log]) => log.sender == BOOTLOADER_FORMAL_ADDRESS,
+        );
+        const [l2ToL1LogIndex, l2ToL1Log] = messages[index];
+
+        return {
+            l2ToL1LogIndex,
+            l2ToL1Log,
+            l1BatchTxId: receipt.l1BatchTxIndex,
+        };
+    }
+
+    async getPriorityOpConfirmation(txHash: string, index: number = 0) {
+        const { l2ToL1LogIndex, l2ToL1Log, l1BatchTxId } =
+            await this._getPriorityOpConfirmationL2ToL1Log(txHash, index);
+        const proof = await this.getLogProof(txHash, l2ToL1LogIndex);
+        return {
+            l1BatchNumber: l2ToL1Log.l1BatchNumber,
+            l2MessageIndex: proof.id,
+            l2TxNumberInBlock: l1BatchTxId,
+            proof: proof.proof,
+        };
     }
 
     async getContractAccountInfo(address: Address): Promise<ContractAccountInfo> {

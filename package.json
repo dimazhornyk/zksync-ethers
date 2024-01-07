@@ -51,12 +51,13 @@
         "test:coverage": "c8 -c .nycrc mocha -r ts-node/register tests/**/*.test.ts",
         "test:wait": "ts-node tests/wait.ts",
         "test": "mocha -r ts-node/register tests/**/*.test.ts",
+        "test:tmp": "mocha -r ts-node/register tests/integration/provider.test.ts",
         "build": "tsc && cp -f typechain/*.d.ts build/typechain && ncp ./abi ./build/abi",
         "lint": "prettier . --write",
         "lint:check": "prettier . --check",
         "watch": "tsc --watch",
         "types:fetch": "cd scripts && ./update-abi.sh && cd ../",
-        "types": "rm typechain/*.ts && find ./abi -name \"*.json\" -print0 | xargs -0 -I {} npx typechain --target ethers-v5 --outDir typechain {}"
+        "types": "rm -rf typechain && find ./abi -name \"*.json\" -print0 | xargs -0 -I {} npx typechain --target ethers-v5 --outDir typechain {}"
     },
     "publishConfig": {
         "access": "public"
