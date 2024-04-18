@@ -4,6 +4,7 @@ coverage
 docs
 typechain
 !src/typechain
+!build/typechain
 
 .idea
 .vscode
