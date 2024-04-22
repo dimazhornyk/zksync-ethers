@@ -86,14 +86,14 @@ describe('Wallet', () => {
   describe('#getBalanceL1()', () => {
     it('should return a L1 balance', async () => {
       const result = await wallet.getBalanceL1();
-      expect(result > 0).to.be.true;
+      expect(result > 0n).to.be.true;
     });
   });
 
   describe('#getAllowanceL1()', () => {
     it('should return an allowance of L1 token', async () => {
       const result = await wallet.getAllowanceL1(DAI_L1);
-      expect(result >= 0).to.be.true;
+      expect(result >= 0n).to.be.true;
     });
   });
 
@@ -145,7 +145,7 @@ describe('Wallet', () => {
   describe('#getBalance()', () => {
     it('should return a `Wallet` balance', async () => {
       const result = await wallet.getBalance();
-      expect(result > 0).to.be.true;
+      expect(result > 0n).to.be.true;
     });
   });
 
@@ -706,7 +706,7 @@ describe('Wallet', () => {
           amount: amount,
           refundRecipient: await wallet.getAddress(),
         });
-        expect(result > 0).to.be.true;
+        expect(result > 0n).to.be.true;
       }).timeout(10_000);
 
       it('should return gas estimation for base token deposit transaction', async () => {
@@ -730,7 +730,7 @@ describe('Wallet', () => {
           amount: amount,
           refundRecipient: await wallet.getAddress(),
         });
-        expect(result > 0).to.be.true;
+        expect(result > 0n).to.be.true;
       }).timeout(10_000);
 
       it('should return gas estimation for DAI deposit transaction', async () => {
@@ -871,7 +871,7 @@ describe('Wallet', () => {
         expect(result).not.to.be.null;
         expect(l2BalanceAfterDeposit - l2BalanceBeforeDeposit >= amount).to.be
           .true;
-        expect(l1BalanceBeforeDeposit - l1BalanceAfterDeposit >= 0).to.be.true;
+        expect(l1BalanceBeforeDeposit - l1BalanceAfterDeposit >= 0n).to.be.true;
       }).timeout(20_000);
 
       it('should deposit DAI to L2 network', async () => {
@@ -1391,7 +1391,7 @@ describe('Wallet', () => {
           calldata: '0x',
           l2Value: 7_000_000_000,
         });
-        expect(result > 0).to.be.true;
+        expect(result > 0n).to.be.true;
       });
     } else {
       it('should return gas estimation for request execute transaction', async () => {
@@ -1411,7 +1411,7 @@ describe('Wallet', () => {
         ).wait();
 
         const result = await wallet.estimateGasRequestExecute(tx);
-        expect(result > 0).to.be.true;
+        expect(result > 0n).to.be.true;
       }).timeout(10_000);
     }
   });
