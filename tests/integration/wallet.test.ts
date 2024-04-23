@@ -3,7 +3,7 @@ import '../custom-matchers';
 import {Provider, Wallet, utils} from '../../src';
 import {ethers, BigNumber} from 'ethers';
 import * as fs from 'fs';
-import {ITestnetErc20TokenFactory} from '../../typechain/ITestnetErc20TokenFactory';
+import {ITestnetErc20TokenFactory} from '../../src/typechain/ITestnetErc20TokenFactory';
 import {
   MNEMONIC1,
   PRIVATE_KEY1,
@@ -24,6 +24,7 @@ const {expect} = chai;
 describe('Wallet', () => {
   const provider = Provider.getDefaultProvider();
   const ethProvider = ethers.getDefaultProvider('http://localhost:8545');
+  ethProvider.pollingInterval = 300;
   const wallet = new Wallet(PRIVATE_KEY1, provider, ethProvider);
 
   const tolerancePercentage = 10; // 10% tolerance
@@ -881,14 +882,23 @@ describe('Wallet', () => {
         try {
           await response.waitFinalize();
         } catch (error) {
-          await utils.sleep(10_000);
+          let blockNumber = (await wallet._providerL2().getTransaction((error as any).transactionHash)).blockNumber!;
+          // Now wait for block number to be executed.
+          while (true) {
+            let blockDetails = await wallet._providerL2().getBlockDetails(blockNumber);
+            if (blockDetails !== null && blockDetails.executeTxHash !== null) {
+              break;
+            }
+            // still not executed.
+            await utils.sleep(500);
+          }
           const tx = await wallet.claimFailedDeposit(
             (error as any).transactionHash
           );
           const result = await tx.wait();
           expect(result.blockHash).to.be.not.null;
         }
-      }).timeout(40_000);
+      }).timeout(50_000);
 
       it('should throw an error when trying to claim successful deposit', async () => {
         const response = await wallet.deposit({
