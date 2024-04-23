@@ -1,4 +1,4 @@
-import { BigNumber, BigNumberish, BytesLike, ethers, Overrides } from 'ethers';
+import { BigNumber, BigNumberish, BytesLike, ethers, Overrides, PopulatedTransaction } from 'ethers';
 import { Provider } from './provider';
 import { Address, BalancesMap, BlockTag, FinalizeWithdrawalParams, FullDepositFee, PaymasterParams, PriorityOpResponse, Signature, TransactionRequest, TransactionResponse } from './types';
 import { TypedDataSigner } from '@ethersproject/abstract-signer';
@@ -7,6 +7,7 @@ import { Il1Erc20Bridge as IL1ERC20Bridge } from './typechain/Il1Erc20Bridge';
 import { Il1SharedBridge as IL1SharedBridge } from './typechain/Il1SharedBridge';
 import { IZkSyncStateTransition } from './typechain/IZkSyncStateTransition';
 import { IBridgehub } from './typechain/IBridgehub';
+import { PayableOverrides } from "@ethersproject/contracts";
 /**
  * All typed data conforming to the EIP712 standard within zkSync Era.
  */
@@ -267,7 +268,7 @@ export declare class Signer extends Signer_base {
      *     Provider.getDefaultProvider(types.Network.Sepolia)
      * );
      *
-     * const tx = signer.transfer({
+     * const tx = await signer.transfer({
      *   to: Wallet.createRandom().address,
      *   amount: ethers.utils.parseEther("0.01"),
      * });
@@ -286,7 +287,7 @@ export declare class Signer extends Signer_base {
      *     Provider.getDefaultProvider(types.Network.Sepolia)
      * );
      *
-     * const tx = signer.transfer({
+     * const tx = await signer.transfer({
      *   to: Wallet.createRandom().address,
      *   amount: ethers.utils.parseEther("0.01"),
      *   paymasterParams: utils.getPaymasterParams(paymaster, {
@@ -514,7 +515,26 @@ declare const L1Signer_base: {
             bridgeAddress?: string | undefined;
             l2GasLimit?: BigNumberish | undefined;
             gasPerPubdataByte?: BigNumberish | undefined;
-            customBridgeData?: BytesLike | undefined;
+            customBridgeData?: BytesLike | undefined; /**
+             * @inheritDoc
+             *
+             * @example
+             *
+             * import { Provider, L1Signer, types } from "zksync-ethers";
+             * import { ethers } from "ethers";
+             *
+             * const browserProvider = new ethers.providers.Web3Provider(window.ethereum);
+             * const signer = L1Signer.from(
+             *     browserProvider.getSigner(),
+             *     Provider.getDefaultProvider(types.Network.Sepolia)
+             * );
+             *
+             * const tokenL1 = "0x56E69Fa1BB0d1402c89E3A4E3417882DeA6B14Be";
+             * const tx = await signer.getDepositTx({
+             *   token: tokenL1,
+             *   amount: 10_000_000,
+             * });
+             */
             refundRecipient?: string | undefined;
             overrides?: ethers.PayableOverrides | undefined;
         }): Promise<any>;
@@ -588,7 +608,28 @@ declare const L1Signer_base: {
             gasPerPubdataByte?: BigNumberish | undefined;
             customBridgeData?: BytesLike | undefined;
             refundRecipient?: string | undefined;
-            overrides?: ethers.PayableOverrides | undefined;
+            overrides?: ethers.PayableOverrides | undefined; /**
+             * @inheritDoc
+             *
+             * @example
+             *
+             * import { Provider, L1Signer, types } from "zksync-ethers";
+             * import { ethers } from "ethers";
+             *
+             * const browserProvider = new ethers.providers.Web3Provider(window.ethereum);
+             * const signer = L1Signer.from(
+             *     browserProvider.getSigner(),
+             *     Provider.getDefaultProvider(types.Network.Sepolia)
+             * );
+             *
+             * const gas = await signer.estimateGasRequestExecute({
+             *     contractAddress: await signer.providerL2.getMainContractAddress(),
+             *     calldata: "0x",
+             *     l2Value: 7_000_000_000,
+             * });
+             *
+             * console.log(`Gas: ${gas}`);
+             */
         }): Promise<ethers.PopulatedTransaction>;
         _getDepositETHOnETHBasedChainTx(transaction: {
             token: string;
@@ -1127,11 +1168,13 @@ export declare class L1Signer extends L1Signer_base {
         operatorTip?: BigNumberish;
         bridgeAddress?: Address;
         approveERC20?: boolean;
+        approveBaseERC20?: boolean;
         l2GasLimit?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
         approveOverrides?: Overrides;
+        approveBaseOverrides?: Overrides;
         customBridgeData?: BytesLike;
     }): Promise<PriorityOpResponse>;
     /**
@@ -1165,7 +1208,7 @@ export declare class L1Signer extends L1Signer_base {
         l2GasLimit?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<BigNumber>;
     /**
      * @inheritDoc
@@ -1197,7 +1240,7 @@ export declare class L1Signer extends L1Signer_base {
         gasPerPubdataByte?: BigNumberish;
         customBridgeData?: BytesLike;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<any>;
     /**
      * @inheritDoc
@@ -1226,7 +1269,7 @@ export declare class L1Signer extends L1Signer_base {
         bridgeAddress?: Address;
         customBridgeData?: BytesLike;
         gasPerPubdataByte?: BigNumberish;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<FullDepositFee>;
     /**
      * @inheritDoc
@@ -1364,14 +1407,15 @@ export declare class L1Signer extends L1Signer_base {
      */
     requestExecute(transaction: {
         contractAddress: Address;
-        calldata: string;
+        calldata: BytesLike;
         l2GasLimit?: BigNumberish;
+        mintValue?: BigNumberish;
         l2Value?: BigNumberish;
         factoryDeps?: BytesLike[];
         operatorTip?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<PriorityOpResponse>;
     /**
      * @inheritDoc
@@ -1397,14 +1441,15 @@ export declare class L1Signer extends L1Signer_base {
      */
     estimateGasRequestExecute(transaction: {
         contractAddress: Address;
-        calldata: string;
+        calldata: BytesLike;
         l2GasLimit?: BigNumberish;
+        mintValue?: BigNumberish;
         l2Value?: BigNumberish;
         factoryDeps?: BytesLike[];
         operatorTip?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<BigNumber>;
     /**
      * @inheritDoc
@@ -1428,15 +1473,16 @@ export declare class L1Signer extends L1Signer_base {
      */
     getRequestExecuteTx(transaction: {
         contractAddress: Address;
-        calldata: string;
+        calldata: BytesLike;
         l2GasLimit?: BigNumberish;
+        mintValue?: BigNumberish;
         l2Value?: BigNumberish;
         factoryDeps?: BytesLike[];
         operatorTip?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
-    }): Promise<ethers.PopulatedTransaction>;
+        overrides?: PayableOverrides;
+    }): Promise<PopulatedTransaction>;
     /**
      * @inheritDoc
      *
@@ -1746,7 +1792,26 @@ declare const L1VoidSigner_base: {
             bridgeAddress?: string | undefined;
             l2GasLimit?: BigNumberish | undefined;
             gasPerPubdataByte?: BigNumberish | undefined;
-            customBridgeData?: BytesLike | undefined;
+            customBridgeData?: BytesLike | undefined; /**
+             * @inheritDoc
+             *
+             * @example
+             *
+             * import { Provider, L1Signer, types } from "zksync-ethers";
+             * import { ethers } from "ethers";
+             *
+             * const browserProvider = new ethers.providers.Web3Provider(window.ethereum);
+             * const signer = L1Signer.from(
+             *     browserProvider.getSigner(),
+             *     Provider.getDefaultProvider(types.Network.Sepolia)
+             * );
+             *
+             * const tokenL1 = "0x56E69Fa1BB0d1402c89E3A4E3417882DeA6B14Be";
+             * const tx = await signer.getDepositTx({
+             *   token: tokenL1,
+             *   amount: 10_000_000,
+             * });
+             */
             refundRecipient?: string | undefined;
             overrides?: ethers.PayableOverrides | undefined;
         }): Promise<any>;
@@ -1820,7 +1885,28 @@ declare const L1VoidSigner_base: {
             gasPerPubdataByte?: BigNumberish | undefined;
             customBridgeData?: BytesLike | undefined;
             refundRecipient?: string | undefined;
-            overrides?: ethers.PayableOverrides | undefined;
+            overrides?: ethers.PayableOverrides | undefined; /**
+             * @inheritDoc
+             *
+             * @example
+             *
+             * import { Provider, L1Signer, types } from "zksync-ethers";
+             * import { ethers } from "ethers";
+             *
+             * const browserProvider = new ethers.providers.Web3Provider(window.ethereum);
+             * const signer = L1Signer.from(
+             *     browserProvider.getSigner(),
+             *     Provider.getDefaultProvider(types.Network.Sepolia)
+             * );
+             *
+             * const gas = await signer.estimateGasRequestExecute({
+             *     contractAddress: await signer.providerL2.getMainContractAddress(),
+             *     calldata: "0x",
+             *     l2Value: 7_000_000_000,
+             * });
+             *
+             * console.log(`Gas: ${gas}`);
+             */
         }): Promise<ethers.PopulatedTransaction>;
         _getDepositETHOnETHBasedChainTx(transaction: {
             token: string;

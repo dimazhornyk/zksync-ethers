@@ -1,6 +1,6 @@
 import { EIP712Signer } from './signer';
 import { Provider } from './provider';
-import { BigNumber, BigNumberish, BytesLike, ethers, Overrides, utils } from 'ethers';
+import { BigNumber, BigNumberish, BytesLike, ethers, Overrides, PopulatedTransaction, utils } from 'ethers';
 import { BlockTag, TransactionResponse, TransactionRequest, Address, PriorityOpResponse, FullDepositFee, FinalizeWithdrawalParams, BalancesMap, PaymasterParams } from './types';
 import { ProgressCallback } from '@ethersproject/json-wallets';
 import { IZkSyncStateTransition } from './typechain/IZkSyncStateTransition';
@@ -8,6 +8,7 @@ import { Il1Erc20Bridge as IL1ERC20Bridge } from './typechain/Il1Erc20Bridge';
 import { Il1SharedBridge as IL1SharedBridge } from './typechain/Il1SharedBridge';
 import { Il2Bridge as IL2Bridge } from './typechain/Il2Bridge';
 import { IBridgehub } from './typechain/IBridgehub';
+import { PayableOverrides } from "@ethersproject/contracts";
 declare const Wallet_base: {
     new (...args: any[]): {
         _providerL2(): Provider;
@@ -169,57 +170,7 @@ declare const Wallet_base: {
             bridgeAddress?: string | undefined;
             customBridgeData?: BytesLike | undefined;
             l2GasLimit?: BigNumberish | undefined;
-            gasPerPubdataByte?: BigNumberish | undefined; /**
-             * @inheritDoc
-             *
-             * @example
-             *
-             * import { Wallet, Provider, utils } from "zksync-ethers";
-             * import { ethers } from "ethers";
-             *
-             * const PRIVATE_KEY = "<WALLET_PRIVATE_KEY>";
-             * const CONTRACT_ADDRESS = "<CONTRACT_ADDRESS>";
-             *
-             * const provider = Provider.getDefaultProvider(types.Network.Sepolia);
-             * const ethProvider = ethers.getDefaultProvider("sepolia");
-             * const wallet = new Wallet(PRIVATE_KEY, provider, ethProvider);
-             *
-             * const gasPrice = await wallet.providerL1.getGasPrice();
-             *
-             * // The calldata can be encoded the same way as for Ethereum.
-             * // Here is an example of how to get the calldata from an ABI:
-             * const abi = [
-             *   {
-             *     inputs: [],
-             *     name: "increment",
-             *     outputs: [],
-             *     stateMutability: "nonpayable",
-             *     type: "function",
-             *   },
-             * ];
-             * const contractInterface = new ethers.utils.Interface(abi);
-             * const calldata = contractInterface.encodeFunctionData("increment", []);
-             * const l2GasLimit = 1000n;
-             *
-             * const txCostPrice = await wallet.getBaseCost({
-             *   gasPrice,
-             *   calldataLength: ethers.utils.arrayify(calldata).length,
-             *   l2GasLimit,
-             * });
-             *
-             * console.log(`Executing the transaction will cost ${ethers.utils.formatEther(txCostPrice)} ETH`);
-             *
-             * const executeTx = await wallet.getRequestExecuteTx({
-             *   contractAddress: CONTRACT_ADDRESS,
-             *   calldata,
-             *   l2Value: 1,
-             *   l2GasLimit,
-             *   overrides: {
-             *     gasPrice,
-             *     value: txCostPrice,
-             *   },
-             * });
-             */
+            gasPerPubdataByte?: BigNumberish | undefined;
             refundRecipient?: string | undefined;
             overrides?: ethers.PayableOverrides | undefined;
         }): Promise<BigNumber>;
@@ -329,7 +280,21 @@ declare const Wallet_base: {
             customBridgeData?: BytesLike | undefined;
             refundRecipient?: string | undefined;
             overrides: ethers.PayableOverrides;
-            contractAddress: string;
+            contractAddress: string; /**
+             * Creates a new `Wallet` with the `provider` as L1 provider and a private key that is built from the mnemonic passphrase.
+             *
+             * @param mnemonic The mnemonic of the private key.
+             * @param [path] The derivation path.
+             * @param [wordlist] The wordlist used to derive the mnemonic.
+             *
+             * @example
+             *
+             * import { Wallet, Provider, utils } from "zksync-ethers";
+             *
+             * const MNEMONIC = "stuff slice staff easily soup parent arm payment cotton hammer scatter struggle";
+             *
+             * const wallet = Wallet.fromMnemonic(MNEMONIC);
+             */
             calldata: string;
             mintValue: BigNumberish;
             l2Value: BigNumberish;
@@ -898,7 +863,7 @@ export declare class Wallet extends Wallet_base {
         l2GasLimit?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<BigNumber>;
     /**
      * @inheritDoc
@@ -930,7 +895,7 @@ export declare class Wallet extends Wallet_base {
         gasPerPubdataByte?: BigNumberish;
         customBridgeData?: BytesLike;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<any>;
     /**
      * @inheritDoc
@@ -959,7 +924,7 @@ export declare class Wallet extends Wallet_base {
         bridgeAddress?: Address;
         customBridgeData?: BytesLike;
         gasPerPubdataByte?: BigNumberish;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<FullDepositFee>;
     /**
      * @inheritDoc
@@ -1130,14 +1095,15 @@ export declare class Wallet extends Wallet_base {
      */
     requestExecute(transaction: {
         contractAddress: Address;
-        calldata: string;
+        calldata: BytesLike;
         l2GasLimit?: BigNumberish;
+        mintValue?: BigNumberish;
         l2Value?: BigNumberish;
         factoryDeps?: BytesLike[];
         operatorTip?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<PriorityOpResponse>;
     /**
      * @inheritDoc
@@ -1192,14 +1158,15 @@ export declare class Wallet extends Wallet_base {
      */
     estimateGasRequestExecute(transaction: {
         contractAddress: Address;
-        calldata: string;
+        calldata: BytesLike;
         l2GasLimit?: BigNumberish;
+        mintValue?: BigNumberish;
         l2Value?: BigNumberish;
         factoryDeps?: BytesLike[];
         operatorTip?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
+        overrides?: PayableOverrides;
     }): Promise<BigNumber>;
     /**
      * @inheritDoc
@@ -1254,15 +1221,16 @@ export declare class Wallet extends Wallet_base {
      */
     getRequestExecuteTx(transaction: {
         contractAddress: Address;
-        calldata: string;
+        calldata: BytesLike;
         l2GasLimit?: BigNumberish;
+        mintValue?: BigNumberish;
         l2Value?: BigNumberish;
         factoryDeps?: BytesLike[];
         operatorTip?: BigNumberish;
         gasPerPubdataByte?: BigNumberish;
         refundRecipient?: Address;
-        overrides?: Overrides;
-    }): Promise<ethers.PopulatedTransaction>;
+        overrides?: PayableOverrides;
+    }): Promise<PopulatedTransaction>;
     /**
      * @inheritDoc
      *

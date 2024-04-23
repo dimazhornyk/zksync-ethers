@@ -746,6 +746,9 @@ exports.undoL1ToL2Alias = undoL1ToL2Alias;
  * @returns The encoded bytes which contains token name, symbol and decimals.
  */
 async function getERC20DefaultBridgeData(l1TokenAddress, provider) {
+    if (isAddressEq(l1TokenAddress, exports.LEGACY_ETH_ADDRESS)) {
+        l1TokenAddress = exports.ETH_ADDRESS_IN_CONTRACTS;
+    }
     const token = Ierc20Factory_1.Ierc20Factory.connect(l1TokenAddress, provider);
     const name = isAddressEq(l1TokenAddress, exports.ETH_ADDRESS_IN_CONTRACTS)
         ? 'Ether'
@@ -975,7 +978,7 @@ async function estimateDefaultBridgeDepositL2Gas(providerL1, providerL2, token, 
         const l1BridgeAddress = bridgeAddresses.sharedL1;
         const l2BridgeAddress = bridgeAddresses.sharedL2;
         const bridgeData = await getERC20DefaultBridgeData(token, providerL1);
-        return await estimateCustomBridgeDepositL2Gas(providerL2, l1BridgeAddress, l2BridgeAddress, token, amount, to, bridgeData, from, gasPerPubdataByte, value);
+        return await estimateCustomBridgeDepositL2Gas(providerL2, l1BridgeAddress, l2BridgeAddress, isAddressEq(token, exports.LEGACY_ETH_ADDRESS) ? exports.ETH_ADDRESS_IN_CONTRACTS : token, amount, to, bridgeData, from, gasPerPubdataByte, value);
     }
 }
 exports.estimateDefaultBridgeDepositL2Gas = estimateDefaultBridgeDepositL2Gas;
