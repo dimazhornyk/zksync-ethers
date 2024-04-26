@@ -8,7 +8,7 @@ import {
   Wallet,
   ContractFactory,
 } from '../../src';
-import {ethers, toBigInt} from 'ethers';
+import {ethers} from 'ethers';
 import {ECDSASmartAccount, MultisigECDSASmartAccount} from '../../src';
 import {
   IS_ETH_BASED,
@@ -21,7 +21,6 @@ import {
   PAYMASTER,
 } from '../utils';
 
-import {expectBigNumberCloseTo} from '../custom-matchers';
 const {expect} = chai;
 
 import MultisigAccount from '../files/TwoUserMultisig.json';
@@ -34,8 +33,6 @@ describe('SmartAccount', async () => {
     {address: ADDRESS1, secret: PRIVATE_KEY1},
     provider
   );
-
-  const tolerancePercentage = 10; // 10% tolerance
 
   describe('#constructor()', () => {
     it('`SmartAccount(address, {address, secret}, provider)` should return a `SmartAccount` with signer and provider', () => {
@@ -158,8 +155,8 @@ describe('SmartAccount', async () => {
         value: 7_000_000_000,
       });
       expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
-      expect(toBigInt(result.gasLimit!) > 0n).to.be.true;
-      expect(toBigInt(result.gasPrice!) > 0n).to.be.true;
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
+      expect(BigInt(result.gasPrice!) > 0n).to.be.true;
     }).timeout(25_000);
 
     it('should return a populated transaction with default values if are omitted', async () => {

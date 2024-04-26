@@ -672,7 +672,7 @@ describe('Provider', () => {
           gasPerPubdata: 800,
         },
       });
-      expect(result > 0).to.be.true;
+      expect(result > 0n).to.be.true;
     });
   });
 

@@ -102,6 +102,9 @@ describe('L2VoidSigner', () => {
         value: 7_000_000,
       });
       expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
+      expect(BigInt(result.maxFeePerGas!) > 0n).to.be.true;
+      expect(BigInt(result.maxPriorityFeePerGas!) > 0n).to.be.true;
     });
 
     it('should return populated transaction when `maxFeePerGas` and `maxPriorityFeePerGas` and `customData` are provided', async () => {
@@ -131,6 +134,7 @@ describe('L2VoidSigner', () => {
         },
       });
       expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
     });
 
     it('should return populated transaction when `maxPriorityFeePerGas` and `customData` are provided', async () => {
@@ -157,6 +161,7 @@ describe('L2VoidSigner', () => {
         },
       });
       expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
     });
 
     it('should return populated transaction when `maxFeePerGas` and `customData` are provided', async () => {
@@ -183,6 +188,7 @@ describe('L2VoidSigner', () => {
         },
       });
       expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
     });
 
     it('should return populated EIP1559 transaction when `maxFeePerGas` and `maxPriorityFeePerGas` are provided', async () => {
@@ -203,6 +209,7 @@ describe('L2VoidSigner', () => {
         maxPriorityFeePerGas: 2_000_000_000n,
       });
       expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
     });
 
     it('should return populated EIP1559 transaction with `maxFeePerGas` and `maxPriorityFeePerGas` same as provided `gasPrice`', async () => {
@@ -222,6 +229,7 @@ describe('L2VoidSigner', () => {
         gasPrice: 3_500_000_000n,
       });
       expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
     });
 
     it('should return populated legacy transaction when `type = 0`', async () => {
@@ -240,6 +248,7 @@ describe('L2VoidSigner', () => {
         value: 7_000_000,
       });
       expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
     });
   });
 
@@ -463,7 +472,14 @@ describe('L1VoidSigner', async () => {
         to: ADDRESS2,
         value: 7_000_000,
       });
-      expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(result).to.be.deepEqualExcluding(tx, [
+        'gasLimit',
+        'maxPriorityFeePerGas',
+        'maxFeePerGas',
+      ]);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
+      expect(BigInt(result.maxPriorityFeePerGas!) > 0n).to.be.true;
+      expect(BigInt(result.maxFeePerGas!) > 0n).to.be.true;
     });
 
     it('should return populated EIP1559 transaction when `maxFeePerGas` and `maxPriorityFeePerGas` are provided', async () => {
@@ -520,7 +536,9 @@ describe('L1VoidSigner', async () => {
         to: ADDRESS2,
         value: 7_000_000,
       });
-      expect(result).to.be.deepEqualExcluding(tx, ['gasLimit']);
+      expect(result).to.be.deepEqualExcluding(tx, ['gasLimit', 'gasPrice']);
+      expect(BigInt(result.gasLimit!) > 0n).to.be.true;
+      expect(BigInt(result.gasPrice!) > 0n).to.be.true;
     });
   });
 
@@ -569,7 +587,12 @@ describe('L1VoidSigner', async () => {
           amount: 7_000_000,
           refundRecipient: await signer.getAddress(),
         });
-        expect(result).to.be.deep.equal(tx);
+        expect(result).to.be.deepEqualExcluding(tx, ['mintValue', 'overrides']);
+        expect(utils.isAddressEq(result.overrides.from, ADDRESS1)).to.be.true;
+        expect(BigInt(result.mintValue) > 0n).to.be.true;
+        expect(BigInt(result.overrides.value) > 0n).to.be.true;
+        expect(BigInt(result.overrides.maxPriorityFeePerGas) > 0n).to.be.true;
+        expect(BigInt(result.overrides.maxFeePerGas) > 0n).to.be.true;
       });
 
       it('should return a deposit transaction with `tx.to == Wallet.getAddress()` when `tx.to` is not specified', async () => {
@@ -597,7 +620,12 @@ describe('L1VoidSigner', async () => {
           amount: 7_000_000,
           refundRecipient: await signer.getAddress(),
         });
-        expect(result).to.be.deep.equal(tx);
+        expect(result).to.be.deepEqualExcluding(tx, ['mintValue', 'overrides']);
+        expect(utils.isAddressEq(result.overrides.from, ADDRESS1)).to.be.true;
+        expect(BigInt(result.mintValue) > 0n).to.be.true;
+        expect(BigInt(result.overrides.value) > 0n).to.be.true;
+        expect(BigInt(result.overrides.maxPriorityFeePerGas) > 0n).to.be.true;
+        expect(BigInt(result.overrides.maxFeePerGas) > 0n).to.be.true;
       });
 
       it('should return DAI deposit transaction', async () => {
@@ -615,7 +643,15 @@ describe('L1VoidSigner', async () => {
           refundRecipient: await signer.getAddress(),
         });
         result.to = result.to.toLowerCase();
-        expect(result).to.be.deepEqualExcluding(tx, ['data']);
+        expect(result).to.be.deepEqualExcluding(tx, [
+          'data',
+          'maxFeePerGas',
+          'maxPriorityFeePerGas',
+          'value',
+        ]);
+        expect(BigInt(result.value) > 0n).to.be.true;
+        expect(BigInt(result.maxPriorityFeePerGas) > 0n).to.be.true;
+        expect(BigInt(result.maxFeePerGas) > 0n).to.be.true;
       });
     } else {
       it('should return ETH deposit transaction', async () => {
@@ -634,7 +670,15 @@ describe('L1VoidSigner', async () => {
           refundRecipient: await signer.getAddress(),
         });
         result.to = result.to.toLowerCase();
-        expect(result).to.be.deepEqualExcluding(tx, ['data']);
+        expect(result).to.be.deepEqualExcluding(tx, [
+          'data',
+          'maxFeePerGas',
+          'maxPriorityFeePerGas',
+          'value',
+        ]);
+        expect(BigInt(result.value) > 0n).to.be.true;
+        expect(BigInt(result.maxPriorityFeePerGas) > 0n).to.be.true;
+        expect(BigInt(result.maxFeePerGas) > 0n).to.be.true;
       });
 
       it('should return a deposit transaction with `tx.to == Wallet.getAddress()` when `tx.to` is not specified', async () => {
@@ -651,7 +695,15 @@ describe('L1VoidSigner', async () => {
           refundRecipient: await signer.getAddress(),
         });
         result.to = result.to.toLowerCase();
-        expect(result).to.be.deepEqualExcluding(tx, ['data']);
+        expect(result).to.be.deepEqualExcluding(tx, [
+          'data',
+          'maxFeePerGas',
+          'maxPriorityFeePerGas',
+          'value',
+        ]);
+        expect(BigInt(result.value) > 0n).to.be.true;
+        expect(BigInt(result.maxPriorityFeePerGas) > 0n).to.be.true;
+        expect(BigInt(result.maxFeePerGas) > 0n).to.be.true;
       });
 
       it('should return DAI deposit transaction', async () => {
@@ -669,7 +721,15 @@ describe('L1VoidSigner', async () => {
           refundRecipient: await signer.getAddress(),
         });
         result.to = result.to.toLowerCase();
-        expect(result).to.be.deepEqualExcluding(tx, ['data']);
+        expect(result).to.be.deepEqualExcluding(tx, [
+          'data',
+          'maxFeePerGas',
+          'maxPriorityFeePerGas',
+          'value',
+        ]);
+        expect(BigInt(result.value) > 0n).to.be.true;
+        expect(BigInt(result.maxPriorityFeePerGas) > 0n).to.be.true;
+        expect(BigInt(result.maxFeePerGas) > 0n).to.be.true;
       });
     }
   });
@@ -683,7 +743,7 @@ describe('L1VoidSigner', async () => {
           amount: 5,
           refundRecipient: await signer.getAddress(),
         });
-        expectBigNumberCloseTo(result, 225_078n, tolerancePercentage);
+        expectBigNumberCloseTo(result, 225_078n, tolerancePercentage); // TODO change
       });
 
       it('should return gas estimation for DAI deposit transaction', async () => {
@@ -696,7 +756,7 @@ describe('L1VoidSigner', async () => {
           amount: 5,
           refundRecipient: await signer.getAddress(),
         });
-        expectBigNumberCloseTo(result, 338_196n, tolerancePercentage);
+        expectBigNumberCloseTo(result, 338_196n, tolerancePercentage); // TODO change
       }).timeout(10_000);
     } else {
       it('should throw an error for insufficient allowance when estimating gas for ETH deposit transaction', async () => {
@@ -793,7 +853,7 @@ describe('L1VoidSigner', async () => {
           amount: amount,
           refundRecipient: await signer.getAddress(),
         });
-        expectBigNumberCloseTo(result, 361_501n, tolerancePercentage);
+        expectBigNumberCloseTo(result, 361_501n, tolerancePercentage); // TODO change
       }).timeout(10_000);
     }
   });
@@ -891,7 +951,7 @@ describe('L1VoidSigner', async () => {
         expect(result.l1GasLimit.valueOf() > 0n).to.be.true;
         expect(result.l2GasLimit.valueOf() > 0n).to.be.true;
         expect(result.maxPriorityFeePerGas!.valueOf() > 0n).to.be.true;
-        expect(result.maxFeePerGas!.valueOf() > 0n).to.be.true
+        expect(result.maxFeePerGas!.valueOf() > 0n).to.be.true;
       }).timeout(10_000);
 
       it('should throw an error when there is not enough balance for the deposit', async () => {
