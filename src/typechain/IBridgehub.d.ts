@@ -28,7 +28,7 @@ interface IBridgehubInterface extends ethers.utils.Interface {
     "addToken(address)": FunctionFragment;
     "baseToken(uint256)": FunctionFragment;
     "createNewChain(uint256,address,address,uint256,address,bytes)": FunctionFragment;
-    "getStateTransition(uint256)": FunctionFragment;
+    "getHyperchain(uint256)": FunctionFragment;
     "l2TransactionBaseCost(uint256,uint256,uint256,uint256)": FunctionFragment;
     "proveL1ToL2TransactionStatus(uint256,bytes32,uint256,uint256,uint16,bytes32[],uint8)": FunctionFragment;
     "proveL2LogInclusion(uint256,uint256,uint256,tuple,bytes32[])": FunctionFragment;
@@ -62,7 +62,7 @@ interface IBridgehubInterface extends ethers.utils.Interface {
     values: [BigNumberish, string, string, BigNumberish, string, BytesLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "getStateTransition",
+    functionFragment: "getHyperchain",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -184,7 +184,7 @@ interface IBridgehubInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getStateTransition",
+    functionFragment: "getHyperchain",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -323,14 +323,14 @@ export class IBridgehub extends Contract {
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
-    getStateTransition(
+    getHyperchain(
       _chainId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<{
       0: string;
     }>;
 
-    "getStateTransition(uint256)"(
+    "getHyperchain(uint256)"(
       _chainId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<{
@@ -401,7 +401,7 @@ export class IBridgehub extends Contract {
       0: boolean;
     }>;
 
-    "proveL2LogInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+    "proveL2LogInclusion(uint256,uint256,uint256,(uint8,bool,uint16,address,bytes32,bytes32),bytes32[])"(
       _chainId: BigNumberish,
       _batchNumber: BigNumberish,
       _index: BigNumberish,
@@ -434,7 +434,7 @@ export class IBridgehub extends Contract {
       0: boolean;
     }>;
 
-    "proveL2MessageInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+    "proveL2MessageInclusion(uint256,uint256,uint256,(uint16,address,bytes),bytes32[])"(
       _chainId: BigNumberish,
       _batchNumber: BigNumberish,
       _index: BigNumberish,
@@ -474,7 +474,7 @@ export class IBridgehub extends Contract {
       overrides?: PayableOverrides
     ): Promise<ContractTransaction>;
 
-    "requestL2TransactionDirect(tuple)"(
+    "requestL2TransactionDirect((uint256,uint256,address,uint256,bytes,uint256,uint256,bytes[],address))"(
       _request: {
         chainId: BigNumberish;
         mintValue: BigNumberish;
@@ -504,7 +504,7 @@ export class IBridgehub extends Contract {
       overrides?: PayableOverrides
     ): Promise<ContractTransaction>;
 
-    "requestL2TransactionTwoBridges(tuple)"(
+    "requestL2TransactionTwoBridges((uint256,uint256,uint256,uint256,uint256,address,address,uint256,bytes))"(
       _request: {
         chainId: BigNumberish;
         mintValue: BigNumberish;
@@ -638,12 +638,12 @@ export class IBridgehub extends Contract {
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
-  getStateTransition(
+  getHyperchain(
     _chainId: BigNumberish,
     overrides?: CallOverrides
   ): Promise<string>;
 
-  "getStateTransition(uint256)"(
+  "getHyperchain(uint256)"(
     _chainId: BigNumberish,
     overrides?: CallOverrides
   ): Promise<string>;
@@ -702,7 +702,7 @@ export class IBridgehub extends Contract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
-  "proveL2LogInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+  "proveL2LogInclusion(uint256,uint256,uint256,(uint8,bool,uint16,address,bytes32,bytes32),bytes32[])"(
     _chainId: BigNumberish,
     _batchNumber: BigNumberish,
     _index: BigNumberish,
@@ -731,7 +731,7 @@ export class IBridgehub extends Contract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
-  "proveL2MessageInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+  "proveL2MessageInclusion(uint256,uint256,uint256,(uint16,address,bytes),bytes32[])"(
     _chainId: BigNumberish,
     _batchNumber: BigNumberish,
     _index: BigNumberish,
@@ -769,7 +769,7 @@ export class IBridgehub extends Contract {
     overrides?: PayableOverrides
   ): Promise<ContractTransaction>;
 
-  "requestL2TransactionDirect(tuple)"(
+  "requestL2TransactionDirect((uint256,uint256,address,uint256,bytes,uint256,uint256,bytes[],address))"(
     _request: {
       chainId: BigNumberish;
       mintValue: BigNumberish;
@@ -799,7 +799,7 @@ export class IBridgehub extends Contract {
     overrides?: PayableOverrides
   ): Promise<ContractTransaction>;
 
-  "requestL2TransactionTwoBridges(tuple)"(
+  "requestL2TransactionTwoBridges((uint256,uint256,uint256,uint256,uint256,address,address,uint256,bytes))"(
     _request: {
       chainId: BigNumberish;
       mintValue: BigNumberish;
@@ -920,12 +920,12 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    getStateTransition(
+    getHyperchain(
       _chainId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<string>;
 
-    "getStateTransition(uint256)"(
+    "getHyperchain(uint256)"(
       _chainId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<string>;
@@ -984,7 +984,7 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    "proveL2LogInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+    "proveL2LogInclusion(uint256,uint256,uint256,(uint8,bool,uint16,address,bytes32,bytes32),bytes32[])"(
       _chainId: BigNumberish,
       _batchNumber: BigNumberish,
       _index: BigNumberish,
@@ -1013,7 +1013,7 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    "proveL2MessageInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+    "proveL2MessageInclusion(uint256,uint256,uint256,(uint16,address,bytes),bytes32[])"(
       _chainId: BigNumberish,
       _batchNumber: BigNumberish,
       _index: BigNumberish,
@@ -1051,7 +1051,7 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<string>;
 
-    "requestL2TransactionDirect(tuple)"(
+    "requestL2TransactionDirect((uint256,uint256,address,uint256,bytes,uint256,uint256,bytes[],address))"(
       _request: {
         chainId: BigNumberish;
         mintValue: BigNumberish;
@@ -1081,7 +1081,7 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<string>;
 
-    "requestL2TransactionTwoBridges(tuple)"(
+    "requestL2TransactionTwoBridges((uint256,uint256,uint256,uint256,uint256,address,address,uint256,bytes))"(
       _request: {
         chainId: BigNumberish;
         mintValue: BigNumberish;
@@ -1218,12 +1218,12 @@ export class IBridgehub extends Contract {
       overrides?: Overrides
     ): Promise<BigNumber>;
 
-    getStateTransition(
+    getHyperchain(
       _chainId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    "getStateTransition(uint256)"(
+    "getHyperchain(uint256)"(
       _chainId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -1282,7 +1282,7 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    "proveL2LogInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+    "proveL2LogInclusion(uint256,uint256,uint256,(uint8,bool,uint16,address,bytes32,bytes32),bytes32[])"(
       _chainId: BigNumberish,
       _batchNumber: BigNumberish,
       _index: BigNumberish,
@@ -1311,7 +1311,7 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    "proveL2MessageInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+    "proveL2MessageInclusion(uint256,uint256,uint256,(uint16,address,bytes),bytes32[])"(
       _chainId: BigNumberish,
       _batchNumber: BigNumberish,
       _index: BigNumberish,
@@ -1349,7 +1349,7 @@ export class IBridgehub extends Contract {
       overrides?: PayableOverrides
     ): Promise<BigNumber>;
 
-    "requestL2TransactionDirect(tuple)"(
+    "requestL2TransactionDirect((uint256,uint256,address,uint256,bytes,uint256,uint256,bytes[],address))"(
       _request: {
         chainId: BigNumberish;
         mintValue: BigNumberish;
@@ -1379,7 +1379,7 @@ export class IBridgehub extends Contract {
       overrides?: PayableOverrides
     ): Promise<BigNumber>;
 
-    "requestL2TransactionTwoBridges(tuple)"(
+    "requestL2TransactionTwoBridges((uint256,uint256,uint256,uint256,uint256,address,address,uint256,bytes))"(
       _request: {
         chainId: BigNumberish;
         mintValue: BigNumberish;
@@ -1504,12 +1504,12 @@ export class IBridgehub extends Contract {
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
-    getStateTransition(
+    getHyperchain(
       _chainId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    "getStateTransition(uint256)"(
+    "getHyperchain(uint256)"(
       _chainId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -1568,7 +1568,7 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    "proveL2LogInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+    "proveL2LogInclusion(uint256,uint256,uint256,(uint8,bool,uint16,address,bytes32,bytes32),bytes32[])"(
       _chainId: BigNumberish,
       _batchNumber: BigNumberish,
       _index: BigNumberish,
@@ -1597,7 +1597,7 @@ export class IBridgehub extends Contract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    "proveL2MessageInclusion(uint256,uint256,uint256,tuple,bytes32[])"(
+    "proveL2MessageInclusion(uint256,uint256,uint256,(uint16,address,bytes),bytes32[])"(
       _chainId: BigNumberish,
       _batchNumber: BigNumberish,
       _index: BigNumberish,
@@ -1635,7 +1635,7 @@ export class IBridgehub extends Contract {
       overrides?: PayableOverrides
     ): Promise<PopulatedTransaction>;
 
-    "requestL2TransactionDirect(tuple)"(
+    "requestL2TransactionDirect((uint256,uint256,address,uint256,bytes,uint256,uint256,bytes[],address))"(
       _request: {
         chainId: BigNumberish;
         mintValue: BigNumberish;
@@ -1665,7 +1665,7 @@ export class IBridgehub extends Contract {
       overrides?: PayableOverrides
     ): Promise<PopulatedTransaction>;
 
-    "requestL2TransactionTwoBridges(tuple)"(
+    "requestL2TransactionTwoBridges((uint256,uint256,uint256,uint256,uint256,address,address,uint256,bytes))"(
       _request: {
         chainId: BigNumberish;
         mintValue: BigNumberish;
